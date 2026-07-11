@@ -61,6 +61,17 @@
       opacity: .92;
     }
 
+    .fx-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: .95;
+    }
+
     body::before {
       content: "";
       position: fixed;
@@ -115,7 +126,7 @@
 
     .shell {
       position: relative;
-      z-index: 1;
+      z-index: 2;
       width: min(1040px, 100%);
       margin: 0 auto;
       display: grid;
@@ -472,6 +483,14 @@
         var(--panel);
     }
 
+    .wheel-card.jackpot {
+      animation: jackpotKick .72s cubic-bezier(.16, 1, .3, 1);
+      box-shadow:
+        0 28px 80px rgba(0,0,0,.46),
+        0 0 70px rgba(255,208,128,.18),
+        0 0 42px rgba(255,122,182,.14);
+    }
+
     .wheel-card::after {
       content: "";
       position: absolute;
@@ -578,6 +597,14 @@
     @keyframes wheelGlow {
       0% { filter: saturate(1) brightness(1); }
       100% { filter: saturate(1.35) brightness(1.16); }
+    }
+
+    @keyframes jackpotKick {
+      0% { transform: translateY(0) scale(1); }
+      18% { transform: translateY(-3px) scale(1.012); }
+      34% { transform: translateY(2px) scale(.996); }
+      56% { transform: translateY(-2px) scale(1.006); }
+      100% { transform: translateY(0) scale(1); }
     }
 
     .spark-ring {
@@ -865,6 +892,7 @@
       <circle cx="1072" cy="824" r="10" fill="#f7f3ea" filter="url(#blur7)"/>
     </g>
   </svg>
+  <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true"></canvas>
   <main class="shell">
     <header class="top">
       <div class="brand">
@@ -988,6 +1016,187 @@
       ];
       let spinning = false;
       let rotation = 0;
+      const fxCanvas = $("fxCanvas");
+      const fx = fxCanvas ? fxCanvas.getContext("2d") : null;
+      const particles = [];
+      const fxColors = ["#ffd080", "#fff8df", "#7df7ff", "#ff7ab6", "#ff8a7a", "#8ef0cf"];
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let fxW = 0;
+      let fxH = 0;
+      let fxDpr = 1;
+      let lastFx = 0;
+      let lastTrail = 0;
+
+      function resizeFx() {
+        if (!fx) return;
+        fxDpr = Math.min(2, window.devicePixelRatio || 1);
+        fxW = window.innerWidth;
+        fxH = window.innerHeight;
+        fxCanvas.width = Math.floor(fxW * fxDpr);
+        fxCanvas.height = Math.floor(fxH * fxDpr);
+        fxCanvas.style.width = `${fxW}px`;
+        fxCanvas.style.height = `${fxH}px`;
+        fx.setTransform(fxDpr, 0, 0, fxDpr, 0, 0);
+      }
+
+      function pickColor() {
+        return fxColors[Math.floor(Math.random() * fxColors.length)];
+      }
+
+      function emitParticle(x, y, options = {}) {
+        if (!fx || (reducedMotion && !options.force)) return;
+        if (particles.length > 420) particles.splice(0, particles.length - 420);
+        const angle = options.angle ?? Math.random() * Math.PI * 2;
+        const speed = (options.speed ?? 1.8) + Math.random() * (options.spread ?? 4.4);
+        const life = options.life ?? (46 + Math.random() * 42);
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed + (options.wind ?? 0),
+          vy: Math.sin(angle) * speed + (options.lift ?? 0),
+          life,
+          max: life,
+          size: (options.size ?? 2.2) + Math.random() * (options.sizeJitter ?? 4.6),
+          color: options.color ?? pickColor(),
+          shape: options.shape ?? (Math.random() < .42 ? "slash" : Math.random() < .68 ? "star" : "dot"),
+          drag: options.drag ?? .982,
+          gravity: options.gravity ?? .045,
+          spin: Math.random() * Math.PI,
+          spinSpeed: (Math.random() - .5) * .24
+        });
+      }
+
+      function burstAt(element, count = 90, power = 8) {
+        if (!element) return;
+        const rect = element.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        for (let i = 0; i < count; i += 1) {
+          emitParticle(x, y, {
+            angle: (i / count) * Math.PI * 2 + (Math.random() - .5) * .45,
+            speed: power * .24,
+            spread: power,
+            size: power > 10 ? 2.8 : 2,
+            sizeJitter: power > 10 ? 7 : 5,
+            life: 54 + Math.random() * (power > 10 ? 58 : 38),
+            force: true,
+            gravity: .03
+          });
+        }
+      }
+
+      function kickJackpot() {
+        const card = document.querySelector(".wheel-card");
+        if (!card) return;
+        card.classList.remove("jackpot");
+        void card.offsetWidth;
+        card.classList.add("jackpot");
+        window.setTimeout(() => card.classList.remove("jackpot"), 820);
+      }
+
+      function drawParticle(p) {
+        const alpha = Math.max(0, p.life / p.max);
+        fx.save();
+        fx.globalAlpha = Math.min(.92, alpha * 1.15);
+        fx.shadowBlur = 18 * alpha;
+        fx.shadowColor = p.color;
+        fx.translate(p.x, p.y);
+        fx.rotate(p.spin);
+        fx.strokeStyle = p.color;
+        fx.fillStyle = p.color;
+        if (p.shape === "slash") {
+          fx.lineWidth = Math.max(1, p.size * .42);
+          fx.beginPath();
+          fx.moveTo(-p.size * 1.8, 0);
+          fx.lineTo(p.size * 1.8, 0);
+          fx.stroke();
+        } else if (p.shape === "star") {
+          fx.lineWidth = Math.max(1, p.size * .28);
+          fx.beginPath();
+          fx.moveTo(-p.size, 0);
+          fx.lineTo(p.size, 0);
+          fx.moveTo(0, -p.size);
+          fx.lineTo(0, p.size);
+          fx.stroke();
+        } else {
+          fx.beginPath();
+          fx.arc(0, 0, p.size, 0, Math.PI * 2);
+          fx.fill();
+        }
+        fx.restore();
+      }
+
+      function tickFx(now) {
+        if (!fx) return;
+        const dt = Math.min(2.2, ((now - lastFx) || 16) / 16.67);
+        lastFx = now;
+        fx.clearRect(0, 0, fxW, fxH);
+        fx.globalCompositeOperation = "lighter";
+        if (!reducedMotion && particles.length < 120 && Math.random() < .34) {
+          emitParticle(Math.random() * fxW, fxH + 12, {
+            speed: .2,
+            spread: .9,
+            lift: -1.1 - Math.random() * 1.4,
+            size: .8,
+            sizeJitter: 2.6,
+            life: 120 + Math.random() * 90,
+            gravity: -.002,
+            drag: .993,
+            shape: "dot"
+          });
+        }
+        for (let i = particles.length - 1; i >= 0; i -= 1) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= p.drag;
+          p.vy = p.vy * p.drag + p.gravity * dt;
+          p.spin += p.spinSpeed * dt;
+          p.life -= dt;
+          drawParticle(p);
+          if (p.life <= 0 || p.x < -80 || p.x > fxW + 80 || p.y < -100 || p.y > fxH + 120) {
+            particles.splice(i, 1);
+          }
+        }
+        fx.globalCompositeOperation = "source-over";
+        window.requestAnimationFrame(tickFx);
+      }
+
+      if (fx) {
+        resizeFx();
+        window.addEventListener("resize", resizeFx);
+        window.addEventListener("pointermove", (event) => {
+          const now = performance.now();
+          if (now - lastTrail < 36) return;
+          lastTrail = now;
+          for (let i = 0; i < 4; i += 1) {
+            emitParticle(event.clientX, event.clientY, {
+              speed: .25,
+              spread: 2.2,
+              lift: -.45,
+              size: 1,
+              sizeJitter: 3.2,
+              life: 28 + Math.random() * 22,
+              gravity: .01
+            });
+          }
+        }, { passive: true });
+        window.addEventListener("pointerdown", (event) => {
+          for (let i = 0; i < 22; i += 1) {
+            emitParticle(event.clientX, event.clientY, {
+              angle: (i / 22) * Math.PI * 2 + (Math.random() - .5) * .5,
+              speed: .9,
+              spread: 3.6,
+              size: 1.6,
+              sizeJitter: 4.2,
+              life: 34 + Math.random() * 30,
+              force: true,
+              gravity: .02
+            });
+          }
+        }, { passive: true });
+        window.requestAnimationFrame(tickFx);
+      }
 
       const base = { tickets: 0, records: [] };
       const load = () => {
@@ -1113,6 +1322,7 @@
         $("result").textContent = scored.ticket ? "罚券已生成，去转惩罚。" : "健康日过关，不用惩罚。";
         $("spinCopy").textContent = scored.ticket ? "现在可以抽一张惩罚卡。" : "今晚过关，转盘保持锁定。";
         $("result").classList.toggle("danger", Boolean(scored.ticket));
+        burstAt(scored.ticket ? $("stage") : $("ring"), scored.ticket ? 82 : 42, scored.ticket ? 7 : 4.8);
         paint();
         renderHistory();
       }
@@ -1153,6 +1363,7 @@
           $("result").textContent = "没有罚券：今天健康的话不用转。";
           $("spinCopy").textContent = "状态不错，别硬罚。";
           $("result").classList.remove("danger");
+          burstAt($("spin"), 26, 3.5);
           return;
         }
         spinning = true;
@@ -1169,6 +1380,8 @@
         const targetAngle = (360 - center) % 360;
         const travel = ((targetAngle - currentAngle + 360) % 360) || 360;
         rotation += (5 + Math.floor(Math.random() * 3)) * 360 + travel;
+        kickJackpot();
+        burstAt($("stage"), mustBig ? 170 : 115, mustBig ? 13 : 9);
         $("wheel").classList.add("spinning");
         $("stage").classList.add("spinning");
         $("wheel").style.transform = `rotate(${rotation}deg)`;
@@ -1179,6 +1392,8 @@
           const label = mustBig ? "强制大惩罚" : `${index + 1}. ${prizes[index][0]}`;
           $("result").innerHTML = `<strong>${label}</strong><br><span class="sub">${prizes[index][1]}</span>`;
           $("spinCopy").textContent = mustBig ? "今天不走运气，直接执行红线规则。" : "抽完就执行，执行完就翻篇。";
+          kickJackpot();
+          burstAt($("stage"), mustBig ? 220 : 145, mustBig ? 16 : 11);
           $("wheel").classList.remove("spinning");
           $("stage").classList.remove("spinning");
           spinning = false;

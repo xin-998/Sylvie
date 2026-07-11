@@ -35,6 +35,8 @@
       color: var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background:
+        linear-gradient(180deg, rgba(9, 11, 16, .54), rgba(9, 11, 16, .84)),
+        url("assets/smoke-whisky-casino-bg.svg"),
         radial-gradient(ellipse at 14% 78%, transparent 0 8%, rgba(255, 208, 128, .13) 8.2% 8.8%, transparent 9.1% 100%),
         radial-gradient(ellipse at 14% 78%, rgba(255, 138, 122, .16), transparent 17%),
         linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
@@ -42,7 +44,9 @@
         radial-gradient(circle at 18% -8%, rgba(125, 247, 255, .24), transparent 34%),
         radial-gradient(circle at 88% 4%, rgba(255, 208, 128, .18), transparent 30%),
         linear-gradient(160deg, #090b10 0%, #111018 48%, #090b10 100%);
-      background-size: auto, auto, 42px 42px, 42px 42px, auto, auto, auto;
+      background-size: auto, cover, auto, auto, 42px 42px, 42px 42px, auto, auto, auto;
+      background-position: center, center, center, center, 0 0, 0 0, center, center, center;
+      background-attachment: fixed;
       padding: 18px;
     }
 
@@ -304,7 +308,7 @@
 
     .quick {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 7px;
     }
 
@@ -325,7 +329,7 @@
 
     .rule {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -543,6 +547,55 @@
       }
     }
 
+    @keyframes sparkChase {
+      to { transform: rotate(360deg) scale(1.02); }
+    }
+
+    @keyframes sparkPop {
+      0%, 100% {
+        filter: brightness(1);
+        opacity: .72;
+      }
+      50% {
+        filter: brightness(1.95) saturate(1.35);
+        opacity: 1;
+      }
+    }
+
+    @keyframes wheelGlow {
+      0% { filter: saturate(1) brightness(1); }
+      100% { filter: saturate(1.35) brightness(1.16); }
+    }
+
+    .spark-ring {
+      position: absolute;
+      inset: -31px;
+      z-index: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: .46;
+      background:
+        radial-gradient(circle at 50% 0%, #fff8df 0 5px, transparent 6px),
+        radial-gradient(circle at 72% 8%, #ffd080 0 4px, transparent 5px),
+        radial-gradient(circle at 91% 29%, #ff7ab6 0 5px, transparent 6px),
+        radial-gradient(circle at 100% 50%, #7df7ff 0 4px, transparent 5px),
+        radial-gradient(circle at 88% 74%, #ffd080 0 5px, transparent 6px),
+        radial-gradient(circle at 68% 92%, #fff8df 0 4px, transparent 5px),
+        radial-gradient(circle at 50% 100%, #ff7ab6 0 5px, transparent 6px),
+        radial-gradient(circle at 28% 92%, #7df7ff 0 4px, transparent 5px),
+        radial-gradient(circle at 9% 72%, #ffd080 0 5px, transparent 6px),
+        radial-gradient(circle at 0% 50%, #fff8df 0 4px, transparent 5px),
+        radial-gradient(circle at 11% 26%, #ff7ab6 0 5px, transparent 6px),
+        radial-gradient(circle at 30% 8%, #7df7ff 0 4px, transparent 5px);
+      filter: drop-shadow(0 0 10px rgba(255,208,128,.4));
+    }
+
+    .stage.spinning .spark-ring {
+      animation:
+        sparkChase .7s linear infinite,
+        sparkPop .2s steps(2, end) infinite;
+    }
+
     .pointer {
       position: absolute;
       top: -2px;
@@ -561,6 +614,7 @@
       height: 100%;
       border-radius: 50%;
       position: relative;
+      z-index: 1;
       border: 2px solid rgba(255,208,128,.28);
       background:
         radial-gradient(circle at 50% 50%, transparent 0 35%, rgba(255,255,255,.06) 36% 37%, transparent 38%),
@@ -584,6 +638,7 @@
     }
 
     .wheel.spinning {
+      animation: wheelGlow .26s ease-in-out infinite alternate;
       box-shadow:
         inset 0 0 0 42px rgba(8, 10, 16, .32),
         inset 0 0 42px rgba(255,255,255,.08),
@@ -767,9 +822,10 @@
             </label>
             <div class="quick" aria-label="香烟快捷选择">
               <button type="button" data-smoke="0">0根</button>
+              <button type="button" data-smoke="1">1根</button>
               <button type="button" data-smoke="3">3根</button>
-              <button type="button" data-smoke="8">8根</button>
-              <button type="button" data-smoke="15">15根</button>
+              <button type="button" data-smoke="5">5根</button>
+              <button type="button" data-smoke="10">10根</button>
             </div>
 
             <label>
@@ -778,8 +834,9 @@
             </label>
             <div class="quick" aria-label="威士忌快捷选择">
               <button type="button" data-drink="0">0杯</button>
-              <button type="button" data-drink="0.5">半杯</button>
               <button type="button" data-drink="1">1杯</button>
+              <button type="button" data-drink="2">2杯</button>
+              <button type="button" data-drink="3">3杯</button>
               <button type="button" data-drink="4">4杯</button>
             </div>
 
@@ -791,9 +848,10 @@
 
             <div id="note" class="note">健康日不用转盘。</div>
             <div class="rule" aria-label="评分规则">
-              <div class="rule-item"><strong>75+</strong><span>Safe，不抽卡</span></div>
-              <div class="rule-item"><strong>60-74</strong><span>Watch，1 张</span></div>
-              <div class="rule-item"><strong>&lt;60</strong><span>Penalty，2 张</span></div>
+              <div class="rule-item"><strong>80+</strong><span>Safe，不抽卡</span></div>
+              <div class="rule-item"><strong>65-79</strong><span>Watch，1 张</span></div>
+              <div class="rule-item"><strong>5+2</strong><span>Buffer，不惩罚</span></div>
+              <div class="rule-item"><strong>8根+</strong><span>Big，强惩罚</span></div>
             </div>
 
             <div class="actions">
@@ -819,7 +877,8 @@
           <span class="status">1 罚券启动</span>
         </div>
 
-        <div class="stage" aria-label="惩罚转盘">
+        <div id="stage" class="stage" aria-label="惩罚转盘">
+          <div class="spark-ring" aria-hidden="true"></div>
           <div class="pointer"></div>
           <div id="wheel" class="wheel">
             <span class="num" style="transform:rotate(22.5deg) translateY(-99px) rotate(-22.5deg)">1</span>
@@ -846,14 +905,14 @@
       const $ = (id) => document.getElementById(id);
       const key = "sylvie-penalty-wheel-v2";
       const prizes = [
-        ["醒酒水吧", "立刻做一杯漂亮的无酒精特调，再喝一大杯水"],
-        ["夜走还债", "出门走25分钟，回来才能刷手机"],
-        ["明日零烟", "明天挑战0根；失败自动加1张罚券"],
-        ["手机封印", "睡前45分钟手机放远，只能聊天或睡觉"],
-        ["家务盲盒", "抽一个小家务：洗杯子、倒垃圾、整理桌面"],
-        ["真心复盘", "5分钟说触发原因，只能说事实，不许互相攻击"],
-        ["双倍关卡", "明天烟酒都达标，才能清掉1张罚券"],
-        ["大惩罚", "请对方一顿早餐或奶茶，外加10分钟认真按摩"]
+        ["醒酒水吧", "立刻做一杯无酒精特调，再喝一大杯水"],
+        ["夜走还债", "出门走30分钟，回来才能刷手机"],
+        ["明日零烟", "明天挑战0根；失败自动加2张罚券"],
+        ["手机封印", "睡前60分钟手机放远，只能聊天或睡觉"],
+        ["家务还债", "今晚完成两件家务：洗杯子、倒垃圾、整理桌面任选二"],
+        ["真心复盘", "10分钟复盘触发原因，并写下明天的具体限制"],
+        ["双倍关卡", "明天烟酒都达标，才能清掉2张罚券"],
+        ["大惩罚", "明天0烟+0酒；失败请一顿正餐并追加2张罚券"]
       ];
       let spinning = false;
       let rotation = 0;
@@ -875,19 +934,25 @@
       };
 
       function scoreDay(smoke, drink) {
-        const smokePenalty = smoke === 0 ? 0 : Math.min(55, 10 + smoke * 3);
+        const smokePenalty = smoke === 0 ? 0 : smoke <= 5 ? smoke * 3 : Math.min(82, 15 + (smoke - 5) * 8);
         let drinkPenalty = 0;
-        if (drink > 0 && drink <= 1) drinkPenalty = 2;
-        if (drink > 1 && drink < 4) drinkPenalty = 10 + Math.round((drink - 1) * 8);
-        if (drink >= 4) drinkPenalty = 38 + Math.round((drink - 4) * 10);
+        if (drink > 0 && drink <= 1) drinkPenalty = 3;
+        if (drink > 1 && drink <= 2) drinkPenalty = 10;
+        if (drink > 2 && drink < 4) drinkPenalty = 18 + Math.round((drink - 2) * 12);
+        if (drink >= 4) drinkPenalty = 48 + Math.round((drink - 4) * 12);
         const score = Math.max(0, 100 - smokePenalty - drinkPenalty);
-        const ticket = score >= 75 ? 0 : score >= 60 ? 1 : 2;
-        const reason = smoke === 0 && drink <= 1 ? "状态在线" :
+        const inBuffer = smoke <= 5 && drink <= 2;
+        const forcedBig = score < 45 || smoke >= 8 || drink >= 4;
+        const ticket = inBuffer ? 0 : score >= 80 ? 0 : score >= 65 ? 1 : forcedBig ? 3 : 2;
+        const reason = inBuffer && (smoke > 0 || drink > 0) ? "缓冲线内" :
+          smoke === 0 && drink <= 1 ? "状态在线" :
           smoke > 0 && drink > 1 ? "烟酒都超线" :
           smoke > 0 ? "香烟触发扣分" : "酒精触发扣分";
-        const note = score >= 75 ? `${reason}，今天不用转盘。` :
-          score >= 60 ? `${reason}，生成1张轻罚券。` : `${reason}，生成2张惩罚券。`;
-        return { score, ticket, note };
+        const note = inBuffer ? `${reason}，今天不惩罚；明天争取少一根。` :
+          score >= 80 ? `${reason}，今天不用转盘。` :
+          score >= 65 ? `${reason}，生成1张罚券。` :
+          forcedBig ? `${reason}，触发红线：强制大惩罚。` : `${reason}，生成2张惩罚券。`;
+        return { score, ticket, note, forcedBig, inBuffer };
       }
 
       function values() {
@@ -902,7 +967,7 @@
       function streak(records) {
         let count = 0;
         for (const item of [...records].sort((a, b) => b.date.localeCompare(a.date))) {
-          if (item.score >= 75) count += 1;
+          if (item.score >= 80) count += 1;
           else break;
         }
         return count;
@@ -917,19 +982,25 @@
         $("drinkVal").textContent = current.drink;
         $("score").textContent = scored.score;
         $("ring").style.setProperty("--score", scored.score);
-        const color = scored.score >= 75 ? "var(--mint)" : scored.score >= 60 ? "var(--coral)" : "var(--danger)";
+        const color = scored.score >= 80 ? "var(--mint)" : scored.score >= 65 ? "var(--coral)" : "var(--danger)";
         $("ring").style.background = `radial-gradient(circle at center, #10131b 0 57%, transparent 58%), conic-gradient(${color} calc(${scored.score} * 1%), rgba(255,255,255,.12) 0)`;
-        $("delta").textContent = scored.ticket ? `+${scored.ticket}罚券` : "过关";
+        $("delta").textContent = scored.forcedBig ? "大惩罚" : scored.ticket ? `+${scored.ticket}罚券` : "过关";
         $("tickets").textContent = `${state.tickets}罚券`;
         $("streak").textContent = `${streak(state.records)}天`;
         $("note").textContent = scored.note;
         status.classList.remove("safe", "watch", "penalty");
-        if (scored.score >= 75) {
+        if (scored.inBuffer) {
+          status.textContent = "Buffer";
+          status.classList.add("safe");
+        } else if (scored.score >= 80) {
           status.textContent = "Safe";
           status.classList.add("safe");
-        } else if (scored.score >= 60) {
+        } else if (scored.score >= 65) {
           status.textContent = "Watch";
           status.classList.add("watch");
+        } else if (scored.forcedBig) {
+          status.textContent = "Big";
+          status.classList.add("penalty");
         } else {
           status.textContent = "Penalty";
           status.classList.add("penalty");
@@ -1015,18 +1086,28 @@
         state.tickets -= 1;
         saveState(state);
         $("tickets").textContent = `${state.tickets}罚券`;
-        const index = Math.floor(Math.random() * prizes.length);
+        const current = values();
+        const currentScored = scoreDay(current.smoke, current.drink);
+        const latest = [...state.records].sort((a, b) => b.date.localeCompare(a.date))[0];
+        const mustBig = Boolean(currentScored.forcedBig || (latest && latest.forcedBig));
+        const index = mustBig ? prizes.length - 1 : Math.floor(Math.random() * prizes.length);
         const center = index * 45 + 22.5;
-        rotation += (5 + Math.floor(Math.random() * 3)) * 360 + (360 - center);
+        const currentAngle = ((rotation % 360) + 360) % 360;
+        const targetAngle = (360 - center) % 360;
+        const travel = ((targetAngle - currentAngle + 360) % 360) || 360;
+        rotation += (5 + Math.floor(Math.random() * 3)) * 360 + travel;
         $("wheel").classList.add("spinning");
+        $("stage").classList.add("spinning");
         $("wheel").style.transform = `rotate(${rotation}deg)`;
-        $("result").textContent = "惩罚抽取中...";
-        $("spinCopy").textContent = "愿赌服输，但别太凶。";
+        $("result").textContent = mustBig ? "红线触发：大惩罚锁定中..." : "惩罚抽取中...";
+        $("spinCopy").textContent = mustBig ? "低于45分或严重超线，不能抽轻惩罚。" : "愿赌服输，抽到几号算几号。";
         $("result").classList.add("danger");
         window.setTimeout(() => {
-          $("result").innerHTML = `<strong>${index + 1}. ${prizes[index][0]}</strong><br><span class="sub">${prizes[index][1]}</span>`;
-          $("spinCopy").textContent = "抽完就执行，执行完就翻篇。";
+          const label = mustBig ? "强制大惩罚" : `${index + 1}. ${prizes[index][0]}`;
+          $("result").innerHTML = `<strong>${label}</strong><br><span class="sub">${prizes[index][1]}</span>`;
+          $("spinCopy").textContent = mustBig ? "今天不走运气，直接执行红线规则。" : "抽完就执行，执行完就翻篇。";
           $("wheel").classList.remove("spinning");
+          $("stage").classList.remove("spinning");
           spinning = false;
           paint();
           renderHistory();

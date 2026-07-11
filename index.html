@@ -848,10 +848,10 @@
 
             <div id="note" class="note">健康日不用转盘。</div>
             <div class="rule" aria-label="评分规则">
-              <div class="rule-item"><strong>80+</strong><span>Safe，不抽卡</span></div>
-              <div class="rule-item"><strong>65-79</strong><span>Watch，1 张</span></div>
-              <div class="rule-item"><strong>5+2</strong><span>Buffer，不惩罚</span></div>
-              <div class="rule-item"><strong>8根+</strong><span>Big，强惩罚</span></div>
+              <div class="rule-item"><strong>≤5+≤2</strong><span>Buffer，0 张</span></div>
+              <div class="rule-item"><strong>80+</strong><span>Safe，0 张</span></div>
+              <div class="rule-item"><strong>65-79</strong><span>超缓冲，1 张</span></div>
+              <div class="rule-item"><strong>8根+/4杯</strong><span>Big，强惩罚</span></div>
             </div>
 
             <div class="actions">
@@ -942,17 +942,18 @@
         if (drink >= 4) drinkPenalty = 48 + Math.round((drink - 4) * 12);
         const score = Math.max(0, 100 - smokePenalty - drinkPenalty);
         const inBuffer = smoke <= 5 && drink <= 2;
+        const bufferUsed = inBuffer && (smoke > 0 || drink > 0);
         const forcedBig = score < 45 || smoke >= 8 || drink >= 4;
         const ticket = inBuffer ? 0 : score >= 80 ? 0 : score >= 65 ? 1 : forcedBig ? 3 : 2;
-        const reason = inBuffer && (smoke > 0 || drink > 0) ? "缓冲线内" :
+        const reason = bufferUsed ? "缓冲线内" :
           smoke === 0 && drink <= 1 ? "状态在线" :
           smoke > 0 && drink > 1 ? "烟酒都超线" :
           smoke > 0 ? "香烟触发扣分" : "酒精触发扣分";
-        const note = inBuffer ? `${reason}，今天不惩罚；明天争取少一根。` :
+        const note = bufferUsed ? `${reason}，今天不惩罚；明天争取少一根。` :
           score >= 80 ? `${reason}，今天不用转盘。` :
           score >= 65 ? `${reason}，生成1张罚券。` :
           forcedBig ? `${reason}，触发红线：强制大惩罚。` : `${reason}，生成2张惩罚券。`;
-        return { score, ticket, note, forcedBig, inBuffer };
+        return { score, ticket, note, forcedBig, inBuffer, bufferUsed };
       }
 
       function values() {
@@ -982,14 +983,14 @@
         $("drinkVal").textContent = current.drink;
         $("score").textContent = scored.score;
         $("ring").style.setProperty("--score", scored.score);
-        const color = scored.score >= 80 ? "var(--mint)" : scored.score >= 65 ? "var(--coral)" : "var(--danger)";
+        const color = scored.inBuffer || scored.score >= 80 ? "var(--mint)" : scored.score >= 65 ? "var(--coral)" : "var(--danger)";
         $("ring").style.background = `radial-gradient(circle at center, #10131b 0 57%, transparent 58%), conic-gradient(${color} calc(${scored.score} * 1%), rgba(255,255,255,.12) 0)`;
-        $("delta").textContent = scored.forcedBig ? "大惩罚" : scored.ticket ? `+${scored.ticket}罚券` : "过关";
+        $("delta").textContent = scored.bufferUsed ? "缓冲" : scored.forcedBig ? "大惩罚" : scored.ticket ? `+${scored.ticket}罚券` : "过关";
         $("tickets").textContent = `${state.tickets}罚券`;
         $("streak").textContent = `${streak(state.records)}天`;
         $("note").textContent = scored.note;
         status.classList.remove("safe", "watch", "penalty");
-        if (scored.inBuffer) {
+        if (scored.bufferUsed) {
           status.textContent = "Buffer";
           status.classList.add("safe");
         } else if (scored.score >= 80) {
